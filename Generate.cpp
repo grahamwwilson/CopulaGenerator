@@ -161,9 +161,11 @@ int main(int argc, char **argv) {
         int key = u.second;
         int rankv = mapSecond[key];
         // Calculate the empirical copula variables given by the rank in the range {1,2,....N}.
-        // It is not 100% clear what is the correct procedure, but standard practice in the literature, motivated by 
-        // mitigation of potential numerical issues near 0 or 1, seems to be to divide by N+1.
-        std::pair<double, double> p = std::make_pair( double(ranku)/double(N+1), double(rankv)/double(N+1) );         
+        // It is not 100% clear what is the correct procedure. 
+        // Much of the literature uses rank/(N+1), but I agree with Joe in Dependence Modeling with Copulas (2014)  
+        // that it is better to use (rank - 0.5)/N to populate more uniformly on the unit square. 
+        // Both are motivated by mitigation of potential numerical issues near 0 or 1.
+        std::pair<double, double> p = std::make_pair( (double(ranku)-0.5)/double(N), (double(rankv)-0.5)/double(N) );         
 //        vcopula.push_back(p);
         fout << std::scientific << p.first << "  " << std::scientific << p.second << std::endl;        
     }
