@@ -52,16 +52,8 @@ typedef std::mt19937 RandomNumberGenerator;
 //                         Graham W. Wilson, 10-JAN-2023.
 //
 
-int main(int argc, char **argv) {
+void Generator(int nevents, unsigned long int seed){
 
-    CLI::App app{"Empirical copula generator"};
-    
-    int nevents = 9;
-    app.add_option("-n,--nevents", nevents, "Number of events");    
-
-    unsigned long int seed = 13579L;
-    app.add_option("-s,--seed", seed, "Seed");
-    
 // Hard code the best fit parameters based on fit to GP4X5X data (583,584 events).
 // Fit parameters 
 // Clayton dependence parameter 0.04973752216
@@ -70,13 +62,8 @@ int main(int argc, char **argv) {
 
     double thetaC = 0.04973752216;
     double thA = 0.3593654267;
-    double weightC = 0.8156300064;    
-           
-    CLI11_PARSE(app, argc, argv);
+    double weightC = 0.8156300064; 
 
-    std::cout << "nevents " << nevents << std::endl;
-    std::cout << "seed    " << seed << std::endl;
-    
     RandomNumberGenerator g(seed);
     std::uniform_real_distribution<double> uniform; 
     
@@ -172,6 +159,25 @@ int main(int argc, char **argv) {
     
     fout.close();
     
+}
+
+int main(int argc, char **argv) {
+
+    CLI::App app{"Empirical copula generator"};
+    
+    int nevents = 9;
+    app.add_option("-n,--nevents", nevents, "Number of events");    
+
+    unsigned long int seed = 13579L;
+    app.add_option("-s,--seed", seed, "Seed");
+           
+    CLI11_PARSE(app, argc, argv);
+
+    std::cout << "nevents " << nevents << std::endl;
+    std::cout << "seed    " << seed << std::endl;
+    
+    Generator(nevents, seed);
+       
     return 0;
     
 }
