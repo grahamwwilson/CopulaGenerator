@@ -52,6 +52,58 @@ typedef std::mt19937 RandomNumberGenerator;
 //                         Graham W. Wilson, 10-JAN-2023.
 //
 
+void Formatter(std::set<std::pair<std::pair<double,double>, int>> uvset,  std::set<std::pair<std::pair<double,double>, int>> vuset){
+
+  // Process the sets and write out the empirical copula file 
+
+  // The uvset and vuset have been sorted by either u or v given the ordering properties of std::set insertion.
+  // Now make the empirical copula vector of pairs with the ranks where the events are already sorted by u using the 
+  // event number as a key to get fast access to the corresponding v value.
+  
+    int N = uvset.size();
+  
+    std::vector<std::pair<int,int>> vfirst;          // For rank of u, event number
+    vfirst.reserve(N);    
+    std::map<int,int> mapSecond;                     // For event number (as key), rank of v
+
+//    std::vector<std::pair<double,double>> vcopula;   // Empirical Copula with ranks re-scaled to (0,1)
+//    vcopula.reserve(N);                              // May be useful to use vcopula directly, but prefer for now simply 
+                                                       // writing this information to the copula file to decouple generation from fitting.   
+      
+    int rankuv=0;
+    for (auto &uv : uvset) {
+        rankuv++;
+        vfirst.push_back(std::make_pair(rankuv, uv.second));
+    }
+    
+    int rankvu=0;
+    for (auto &vu : vuset) {
+        rankvu++;
+        mapSecond.insert(std::make_pair(vu.second, rankvu));        
+    }
+
+    std::ofstream fout;
+    fout.open("CopulaGen.EDAT");
+    fout.precision(10);   
+         
+    for (auto &u : vfirst){
+        int ranku = u.first;
+        int key = u.second;
+        int rankv = mapSecond[key];
+        // Calculate the empirical copula variables given by the rank in the range {1,2,....N}.
+        // It is not 100% clear what is the correct procedure. 
+        // Much of the literature uses rank/(N+1), but I agree with Joe in Dependence Modeling with Copulas (2014)  
+        // that it is better to use (rank - 0.5)/N to populate more uniformly on the unit square. 
+        // Both are motivated by mitigation of potential numerical issues near 0 or 1.
+        std::pair<double, double> p = std::make_pair( (double(ranku)-0.5)/double(N), (double(rankv)-0.5)/double(N) );         
+//        vcopula.push_back(p);
+        fout << std::scientific << p.first << "  " << std::scientific << p.second << std::endl;        
+    }
+    
+    fout.close();
+
+}
+
 void Generator(int nevents, unsigned long int seed){
 
 // Hard code the best fit parameters based on fit to GP4X5X data (583,584 events).
@@ -67,8 +119,8 @@ void Generator(int nevents, unsigned long int seed){
     RandomNumberGenerator g(seed);
     std::uniform_real_distribution<double> uniform; 
     
-    std::set<std::pair<std::pair<double,double>, int>> myuvset;
-    std::set<std::pair<std::pair<double,double>, int>> myvuset;
+    std::set<std::pair<std::pair<double,double>, int>> uvset;
+    std::set<std::pair<std::pair<double,double>, int>> vuset;
     int N = nevents; 
     
     double u1,u2;
@@ -79,7 +131,7 @@ void Generator(int nevents, unsigned long int seed){
         double v2 = uniform(g);    // v2 is used as an auxiliary random variable to solve for u2 using v2 = dC(u,v)/du = f(u=u1, v=u2)
         int idistbn;
         if ( which <= weightC ){
-  // Clayton
+  // Clayton (also known by other names. Joe (2014) calls it the bivariate Mardia-Takahasi-Clayton-Cook-Johnson copula
             idistbn = 0;
             u2 = pow(1.0 - pow(u1, -thetaC) + pow( 1.0/(v2*pow(u1, 1.0+thetaC)), thetaC/(1.0+thetaC) ) , -1.0/thetaC);      
         }
@@ -108,56 +160,14 @@ void Generator(int nevents, unsigned long int seed){
  // At this stage (u1,u2) are random variables on (0,1) from the copula distribution
 
         std::pair<double,double> puv=std::make_pair(u1,u2);
-        myuvset.insert(std::make_pair(puv,i+1));              // Will be sorted by increasing values of u1
+        uvset.insert(std::make_pair(puv,i+1));              // Will be sorted by increasing values of u1
         std::pair<double,double> pvu=std::make_pair(u2,u1);
-        myvuset.insert(std::make_pair(pvu,i+1));              // Will be sorted by increasing values of u2
+        vuset.insert(std::make_pair(pvu,i+1));              // Will be sorted by increasing values of u2
         
     }
     
-  // At this stage both the uvset and vuset have been sorted by either u or v given the ordering properties of std::set insertion.
-  // Now make the empirical copula vector of pairs with the ranks where the events are already sorted by u using the 
-  // event number as a key to get fast access to the corresponding v value.
-  
-    std::vector<std::pair<int,int>> vfirst;          // For rank of u, event number
-    vfirst.reserve(N);    
-    std::map<int,int> mapSecond;                     // For event number (as key), rank of v
-
-//    std::vector<std::pair<double,double>> vcopula;   // Empirical Copula with ranks re-scaled to (0,1)
-//    vcopula.reserve(N);                              // May be useful to use vcopula directly, but prefer 
-//                                                     // for now simply writing this information to the copula file
-//                                                     // to decouple generation from fitting.   
-      
-    int rankuv=0;
-    for (auto &uv : myuvset) {
-        rankuv++;
-        vfirst.push_back(std::make_pair(rankuv, uv.second));
-    }
-    
-    int rankvu=0;
-    for (auto &vu : myvuset) {
-        rankvu++;
-        mapSecond.insert(std::make_pair(vu.second, rankvu));        
-    }
-
-    std::ofstream fout;
-    fout.open("CopulaGen.EDAT");
-    fout.precision(10);   
-         
-    for (auto &u : vfirst){
-        int ranku = u.first;
-        int key = u.second;
-        int rankv = mapSecond[key];
-        // Calculate the empirical copula variables given by the rank in the range {1,2,....N}.
-        // It is not 100% clear what is the correct procedure. 
-        // Much of the literature uses rank/(N+1), but I agree with Joe in Dependence Modeling with Copulas (2014)  
-        // that it is better to use (rank - 0.5)/N to populate more uniformly on the unit square. 
-        // Both are motivated by mitigation of potential numerical issues near 0 or 1.
-        std::pair<double, double> p = std::make_pair( (double(ranku)-0.5)/double(N), (double(rankv)-0.5)/double(N) );         
-//        vcopula.push_back(p);
-        fout << std::scientific << p.first << "  " << std::scientific << p.second << std::endl;        
-    }
-    
-    fout.close();
+// Process the sets and write out the empirical copula file   
+    Formatter(uvset, vuset);
     
 }
 
