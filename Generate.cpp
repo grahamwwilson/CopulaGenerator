@@ -108,13 +108,13 @@ void Generator(int nevents, unsigned long int seed){
 
 // Hard code the best fit parameters based on fit to GP4X5X data (583,584 events).
 // Fit parameters 
-// Clayton dependence parameter 0.04973752216
-// AMH dependence parameter     0.3593654267
-// Clayton phiwt parameter      0.443809781 wt = 0.8156300064
+// Clayton dependence parameter 0.04969906094
+// AMH dependence parameter     0.3598358846
+// Clayton phiwt parameter      0.4436183234 wt = 0.8157784722
 
-    double thetaC = 0.04973752216;
-    double thA = 0.3593654267;
-    double weightC = 0.8156300064; 
+    double thetaC  = 0.04969906094;
+    double thA     = 0.3598358846;
+    double weightC = 0.8157784722; 
 
     RandomNumberGenerator g(seed);
     std::uniform_real_distribution<double> uniform; 
