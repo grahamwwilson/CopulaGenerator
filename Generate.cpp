@@ -7,8 +7,12 @@
 #include <random>
 #include <set>
 #include <map>
+#include <string>
 
 typedef std::mt19937 RandomNumberGenerator;
+
+std::string copulafile;
+
 //
 // Generate empirical copula using order statistics for Goodness-Of-Fit tests.
 // The null hypothesis we wish to test is that the (E1,E2) dependence structure of the 
@@ -84,7 +88,8 @@ void Formatter(std::set<std::pair<std::pair<double,double>, int>> uvset,  std::s
     }
 
     std::ofstream fout;
-    fout.open("CopulaGen.EDAT");
+    fout.open(copulafile);
+    std::cout << "Writing copula file named " << copulafile << std::endl;
     fout.precision(10);   
          
     for (auto &u : vfirst){
@@ -180,11 +185,17 @@ int main(int argc, char **argv) {
 
     unsigned long int seed = 13579L;
     app.add_option("-s,--seed", seed, "Seed");
-           
+
+    std::string filename = "CopulaGen.EDAT";
+    app.add_option("-o,--outputfile", filename, "Output copula file");
+
     CLI11_PARSE(app, argc, argv);
 
-    std::cout << "nevents " << nevents << std::endl;
-    std::cout << "seed    " << seed << std::endl;
+    std::cout << "nevents  " << nevents << std::endl;
+    std::cout << "seed     " << seed << std::endl;
+    std::cout << "filename " << filename << std::endl;
+
+    copulafile = filename;             // Write filename to globally declared copulafile string
     
     Generator(nevents, seed);
        
