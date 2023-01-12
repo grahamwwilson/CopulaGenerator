@@ -96,13 +96,7 @@ void Reader(std::string copulafile="copula_4X5X-V3.EdatS"){
 
 int main(int argc, char **argv) {
 
-    CLI::App app{"Reformat emprical copula file"};
-    
-    int nevents = 9;
-    app.add_option("-n,--nevents", nevents, "Number of events");    
-
-    unsigned long int seed = 13579L;
-    app.add_option("-s,--seed", seed, "Seed");
+    CLI::App app{"Reformat empirical copula file"};
            
     CLI11_PARSE(app, argc, argv);
     
