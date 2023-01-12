@@ -120,8 +120,7 @@ void Generator(int nevents, unsigned long int seed){
     std::uniform_real_distribution<double> uniform; 
     
     std::set<std::pair<std::pair<double,double>, int>> uvset;
-    std::set<std::pair<std::pair<double,double>, int>> vuset;
-    int N = nevents; 
+    std::set<std::pair<std::pair<double,double>, int>> vuset; 
     
     double u1,u2;
     
