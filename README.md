@@ -1,7 +1,7 @@
 # CopulaGenerator
-This packaged started life for the singular purpose of generating empirical 
-copulas from a specified distribution. It now has some other components related 
-to modeling 3-body decays.
+This package started life with the singular purpose of generating empirical 
+copulas from a specified distribution. It now includes a related reformatting 
+utility, and some other components related to sampling from 3-body decays.
 
 ## Executables
 ### Generate           
