@@ -1,8 +1,0 @@
-> ./Generate --help
-Empirical copula generator
-Usage: ./Generate [OPTIONS]
-
-Options:
-  -h,--help                   Print this help message and exit
-  -n,--nevents INT            Number of events
-  -s,--seed UINT              Seed
