@@ -2,3 +2,7 @@ Generate
 *.EDAT
 *.EdatS
 Reformat
+*.root
+UnivariateModeler
+BivariateModeler
+*.out
