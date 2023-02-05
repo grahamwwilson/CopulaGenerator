@@ -80,7 +80,8 @@ void UniGenerator(int nevents, unsigned long int seed, double mA, double mB, dou
             h_E->Fill(E);
             h_mffsq->Fill(mffsq);
             h_mff->Fill(mff);
-            if(ngenerated <=100)std::cout << "Accept  " << ngenerated << " " << E << " " << mffsq << " " << mff<< " " << pdf <<  std::endl;
+            if(ngenerated <=100)std::cout << "Accept  " << ngenerated << " " 
+                                << E << " " << mffsq << " " << mff<< " " << pdf <<  std::endl;
         }                 
     }
     
