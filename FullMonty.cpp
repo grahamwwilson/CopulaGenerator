@@ -18,7 +18,34 @@ typedef std::mt19937 RandomNumberGenerator;
 //
 
 bool generateArmDoubleBeta(double t, double r){
+//
+// Evaluate the unnormalized pdf and decide whether to keep the candidate t value as a random variate 
+// using the arms parameterization.
+//
 #include "armsDoubleBeta.h"
+    double beta1 = std::pow(1.0 - std::pow(t,eta), a2) * std::pow(t, eta*(1.0+a3) - 1.0);
+    double beta2 = std::pow(1.0 - std::pow(t,eta), a2p) * std::pow(t, eta*(1.0+a3p) - 1.0);
+    double pdf = frac*beta1 + (1.0-frac)*beta2;
+    
+    bool success = false;
+    
+    if ( pdf > WTMAX ){
+        std::cout << "WARNING!: max. allowed weight in generateArmDoubleBeta exceeded. Need to adjust " << pdf << " " << WTMAX << std::endl;
+    }
+        
+    if ( pdf > WTMAX*r ) success = true;
+    
+    return success;
+   
+}
+
+bool generateBodyDoubleBeta(double t, double r){
+//
+// Evaluate the unnormalized pdf and decide whether to keep the candidate t value as a random variate 
+// using the body parameterization.
+//
+#include "bodyDoubleBeta.h"
+    const double WTMAX = 0.52;
 // Evaluate unnormalized pdf
     double beta1 = std::pow(1.0 - std::pow(t,eta), a2) * std::pow(t, eta*(1.0+a3) - 1.0);
     double beta2 = std::pow(1.0 - std::pow(t,eta), a2p) * std::pow(t, eta*(1.0+a3p) - 1.0);
@@ -27,7 +54,7 @@ bool generateArmDoubleBeta(double t, double r){
     bool success = false;
     
     if ( pdf > WTMAX ){
-        std::cout << "Warning maximum allowed weight exceeded. Need to adjust " << pdf << " " << WTMAX << std::endl;
+        std::cout << "WARNING!: max. allowed weight in generateBodyDoubleBeta exceeded. Need to adjust " << pdf << " " << WTMAX << std::endl;    
     }
         
     if ( pdf > WTMAX*r ) success = true;
@@ -53,8 +80,8 @@ double functionGradient(double t, double normFactor){
 
 std::pair<double, double> Evaluate(double tmin, double tmax, int Nbase){
 // 
-// Evaluate the un-normalized cumulative distribution function using Boole's rule.
-// This is a 5-point closed Newton-Cotes formula. 
+// Evaluate the un-normalized cumulative distribution function using an extended version of 
+// Boole's rule which is a 5-point closed Newton-Cotes formula. 
 // (the first call will be to calculate the integral over the full range)
 //
 #include "bodyDoubleBeta.h"
@@ -141,11 +168,11 @@ double rootFinderAlt( double tlo, double thi, double flo, double fhi, double u, 
         troot+= dtroot;
         error = std::abs(fn);
         niter++;
-        std::cout << "NR iteration " << niter << " dtroot " << dtroot << " error " << error << std::endl;
+        // std::cout << "NR iteration " << niter << " dtroot " << dtroot << " error " << error << std::endl;
  
     }    
 
-    std::cout << "Returning after " << niter << " iterations " << std::endl;   
+    // std::cout << "Returning after " << niter << " iterations " << std::endl;   
     
     return troot;
     
@@ -194,9 +221,18 @@ std::pair<double, double> copulaVariates(double which, double u1, double v2){
 }
 
 
-void FullMontyGenerator(int nevents, unsigned long int seed, double dxmin, double eta, double dmu1, double dmu2, double sigma1, double sigma2){
+void FullMontyGenerator(int nevents, unsigned long int seed, double dxmin, double eta, 
+                        double dmu1, double dmu2, double sigma1, double sigma2, bool independent, int copula){
 
 #include "regionProbabilities.h"
+
+    std::ofstream fout;
+    fout.open("GeneratedE1E2.dat");
+    fout.precision(10);
+    
+    std::ofstream fout2;
+    fout2.open("GeneratedE1E2-REGION.dat");
+    fout2.precision(10);    
 
     double maxweight;
     
@@ -229,7 +265,21 @@ void FullMontyGenerator(int nevents, unsigned long int seed, double dxmin, doubl
     TH1D *h_xp = new TH1D("h_xp","xp",102,0.9900,1.0002);
     TH1D *h_xpp = new TH1D("h_xpp","xpp",102,0.99990,1.000002);
     TH1D *h_xppp = new TH1D("h_xppp","xppp",102,0.999990,1.0000002);
-    TH1D *h_ecm = new TH1D("h_ecm","ecm",11000,0.0,1.10);                     
+    TH1D *h_ecm = new TH1D("h_ecm","ecm",11000,0.0,1.10);
+
+// Same binning as gplumi.root files
+    TH1D *h1 = new TH1D("h1","CoM Energy",2048,220.0,271.2);
+    TH1D *h2 = new TH1D("h2","CoM Energy",114,245.0,250.7);
+    TH1D *h3 = new TH1D("h3","CoM Energy",124,245.0,251.2);
+    TH1D *h4 = new TH1D("h4","CoM Energy",248,245.0,251.2);
+    TH1D *h5 = new TH1D("h5","CoM Energy",448,240.0,251.2);
+    TH1D *h6 = new TH1D("h6","CoM Energy",1248,220.0,251.2);
+    TH1D *h7 = new TH1D("h7","CoM Energy",624,220.0,251.2);
+    TH1D *h8 = new TH1D("h8","CoM Energy",312,220.0,251.2);
+    TH1D *h29 = new TH1D("h29","Electron Energy",256,120.0,126.4);
+    TH1D *h30 = new TH1D("h30","Positron Energy",256,120.0,126.4);
+    
+    double Ebeam=125.0;                         
 
     maxweight = -1.0;
     
@@ -270,7 +320,7 @@ void FullMontyGenerator(int nevents, unsigned long int seed, double dxmin, doubl
         else if( t < 0.975 ){
             auto integral = Evaluate( t, tmax, 400);
             cdf = 1.0 - (integral.first/normintegral.first) ;           
-            //std::cout << "i, F(t), t " << i << " " << cdf << " " << t << std::endl;
+            std::cout << "i, F(t), t " << i << " " << cdf << " " << t << std::endl;
             quantileSet.insert(std::make_pair(cdf, t));
             quantileROSet.insert(std::make_pair(cdf, t));                       
         }    
@@ -290,16 +340,16 @@ void FullMontyGenerator(int nevents, unsigned long int seed, double dxmin, doubl
         
         if( uregion < ppeak ){
             // Peak region
-            std::cout << "PEAK " << std::endl;
-            region = "PEAK "; 
+            //std::cout << "PEAK " << std::endl;
+            region = "PEAK"; 
             x1 = 1.0;
             x2 = 1.0;
         }
         else if ( uregion < ppeak + parm1 ){
             // Arm1
             // Generate arm specific double beta distribution for x1
-            std::cout << "ARM1 " << std::endl;
-            region = "ARM1 ";             
+            //std::cout << "ARM1 " << std::endl;
+            region = "ARM1";             
             bool arm1Failure = true;
             double t1, rtest;
             while (arm1Failure) {
@@ -316,7 +366,7 @@ void FullMontyGenerator(int nevents, unsigned long int seed, double dxmin, doubl
         else if ( uregion < ppeak + parm1 + parm2 ){
             // Arm2 
             // Generate same arm specific double beta distribution for x2
-            std::cout << "ARM2 " << std::endl;
+            //std::cout << "ARM2 " << std::endl;
             region = "ARM2";                
             bool arm2Failure = true;
             double t2, rtest;
@@ -333,23 +383,59 @@ void FullMontyGenerator(int nevents, unsigned long int seed, double dxmin, doubl
         }
         else{
             // Body
-            std::cout << "BODY " << std::endl; 
-            region = "BODY ";            
+            //std::cout << "BODY " << std::endl; 
+            region = "BODY";
+            if ( independent ){
+// Use hit and miss as above but different beta distribution to arms.
+                bool body1Failure = true;
+                double t1, rtest;
+                while (body1Failure) {
+                    t1 = uniformt(gent);
+                    rtest = uniform(genu);
+                    bool success = generateBodyDoubleBeta(t1, rtest);
+                    if(success){
+                        x1 = 1.0 - std::pow(t1, eta);
+                        body1Failure = false;
+                    }
+                }
+                bool body2Failure = true;
+                double t2;
+                while (body2Failure) {
+                    t2 = uniformt(gent);
+                    rtest = uniform(genu);
+                    bool success = generateBodyDoubleBeta(t2, rtest);
+                    if(success){
+                        x2 = 1.0 - std::pow(t2, eta);
+                        body2Failure = false;
+                    }
+                }
+            }
+            else{
             // First generate copula (u,v) values
-            double which = uniform(genu);
-            double u1 = uniform(genu);
-            double v2 = uniform(genu);
-            std::pair<double,double> cpair = copulaVariates(which, u1, v2);
-            double u = cpair.first;
-            double v = cpair.second;
+            double u,v;
+            
+            if (copula==1){
+            // Clayton + AMH mixture model copula
+                double which = uniform(genu);
+                double u1 = uniform(genu);
+                double v2 = uniform(genu);
+                std::pair<double,double> cpair = copulaVariates(which, u1, v2);
+                u = cpair.first;
+                v = cpair.second;
+            }
+            else{
+            // independent copula (this is a cross-check, the non-copula generation method is preferred if independence is desired ...)
+                u = uniform(genu);
+                v = uniform(genu);
+            }    
     
     // First variable
-            std::cout << "Target quantile " << u << std::endl;
+    //        std::cout << "Target quantile " << u << std::endl;
             std::pair<double, double> ptest = std::make_pair(u, 0.5); // Second element of the pair is needed - but the value should be immaterial as we have a set not a multiset.
             auto plo = quantileROSet.lower_bound(ptest);              // Get iterator to the position of the lower edge of the bracketing interval
             auto phi = quantileSet.lower_bound(ptest);                // Get iterator to the position of the upper edge of the bracketing interval 
-            std::cout << " plo " << (*plo).first << " " << (*plo).second << std::endl;
-            std::cout << " phi " << (*phi).first << " " << (*phi).second << std::endl;
+    //        std::cout << " plo " << (*plo).first << " " << (*plo).second << std::endl;
+    //        std::cout << " phi " << (*phi).first << " " << (*phi).second << std::endl;
     
     // Now we want to do some root-finding.
             double tlo = (*plo).second;
@@ -368,12 +454,12 @@ void FullMontyGenerator(int nevents, unsigned long int seed, double dxmin, doubl
             x1 = 1.0 - std::pow(t1, eta);
             
     // Second variable        
-            std::cout << "Target quantile " << v << std::endl;
+    //        std::cout << "Target quantile " << v << std::endl;
             ptest = std::make_pair(v, 0.5); // Second element of the pair is needed - but the value should be immaterial as we have a set not a multiset.
             plo = quantileROSet.lower_bound(ptest);              // Get iterator to the position of the lower edge of the bracketing interval
             phi = quantileSet.lower_bound(ptest);                // Get iterator to the position of the upper edge of the bracketing interval 
-            std::cout << " plo " << (*plo).first << " " << (*plo).second << std::endl;
-            std::cout << " phi " << (*phi).first << " " << (*phi).second << std::endl;
+    //        std::cout << " plo " << (*plo).first << " " << (*plo).second << std::endl;
+    //        std::cout << " phi " << (*phi).first << " " << (*phi).second << std::endl;
     
     // Now we want to do some root-finding.
             tlo = (*plo).second;
@@ -388,7 +474,8 @@ void FullMontyGenerator(int nevents, unsigned long int seed, double dxmin, doubl
             }     
 
             double t2 = troot;
-            x2 = 1.0 - std::pow(t2, eta);            
+            x2 = 1.0 - std::pow(t2, eta);
+            }  // Close copula based modeling
             
        }
        ngenerated++;
@@ -399,6 +486,14 @@ void FullMontyGenerator(int nevents, unsigned long int seed, double dxmin, doubl
        x2p = x2 + sigma2*gaussian(geng);
        double sqrts = std::sqrt(x1p*x2p);     
        h_ecm->Fill(sqrts);
+       
+       fout << Ebeam*x1p << " " << Ebeam*x2p << std::endl;
+       fout2 << region << " " << Ebeam*x1p << " " << Ebeam*x2p << std::endl;
+       
+       double ecm=2.0*Ebeam*sqrts;
+       h1->Fill(ecm); h2->Fill(ecm); h3->Fill(ecm); h4->Fill(ecm); h5->Fill(ecm); h6->Fill(ecm); h7->Fill(ecm); h8->Fill(ecm);
+       h29->Fill(Ebeam*x1);
+       h30->Fill(Ebeam*x2);
             
        if(ngenerated <=100)std::cout << "Accept  " << ngenerated << " " << region << " (x1, x2) " << x1 << " " << x2 <<  std::endl;
        
@@ -426,7 +521,10 @@ void FullMontyGenerator(int nevents, unsigned long int seed, double dxmin, doubl
     h_xpp->Write();
     h_xppp->Write();
     h_ecm->Write();
+    h1->Write(); h2->Write(); h3->Write(); h4->Write(); h5->Write(); h6->Write(); h7->Write(); h8->Write(); h29->Write(); h30->Write();
     myFile->Close();
+    fout.close();
+    fout2.close();
  
 }
 
@@ -437,7 +535,7 @@ int main(int argc, char **argv) {
     int nevents = 10;
     app.add_option("-n,--nevents", nevents, "Number of events");    
 
-    unsigned long int seed = 33579L;
+    unsigned long int seed = 12345;
     app.add_option("-s,--seed", seed, "Seed for random number generator");
     
     double dxmin = 2.0e-6;
@@ -457,24 +555,32 @@ int main(int argc, char **argv) {
     app.add_option("--dmu2", dmu2, "Positron energy scale deviation (ppm)");  
 
     double sigma1 = 0.190e-2;
-    app.add_option("--sigma1", sigma1, "Electron beam energy spread"); 
+    app.add_option("--sigma1", sigma1, "Electron beam energy spread fraction"); 
     
     double sigma2 = 0.152e-2;
-    app.add_option("--sigma2", sigma2, "Positron beam energy spread");        
+    app.add_option("--sigma2", sigma2, "Positron beam energy spread fraction");
+    
+    bool independent = false;
+    app.add_flag("-i,--independent", independent, "Disable the slow copula dependence modeling");
+    
+    int copula = 1;
+    app.add_option("-c,--copula", copula, "Copula model choice (1-Fitted model or 2-independent)");    
     
 
     CLI11_PARSE(app, argc, argv);
 
-    std::cout << "nevents   " << nevents << std::endl;
-    std::cout << "seed      " << seed << std::endl;
-    std::cout << "dxmin     " << dxmin << std::endl;
-    std::cout << "eta       " << eta << std::endl;
-    std::cout << "dmu1      " << dmu1 << std::endl;
-    std::cout << "dmu2      " << dmu2 << std::endl;     
-    std::cout << "sigma1    " << sigma1 << std::endl;
-    std::cout << "sigma2    " << sigma2 << std::endl;             
+    std::cout << "nevents    " << nevents << std::endl;
+    std::cout << "seed       " << seed << std::endl;
+    std::cout << "dxmin      " << dxmin << std::endl;
+    std::cout << "eta        " << eta << std::endl;
+    std::cout << "dmu1       " << dmu1 << std::endl;
+    std::cout << "dmu2       " << dmu2 << std::endl;     
+    std::cout << "sigma1     " << sigma1 << std::endl;
+    std::cout << "sigma2     " << sigma2 << std::endl;
+    std::cout << "indepenent " << independent << std::endl;
+    std::cout << "copula     " << copula << std::endl; 
  
-    FullMontyGenerator(nevents, seed, dxmin, eta, dmu1, dmu2, sigma1, sigma2);
+    FullMontyGenerator(nevents, seed, dxmin, eta, dmu1, dmu2, sigma1, sigma2, independent, copula);
        
     return 0;
     
