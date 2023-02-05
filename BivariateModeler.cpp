@@ -108,7 +108,8 @@ double decayAngleFormula(double s, double mi, double mj, double mk, double sj, d
        return costh;
 }
 
-void BiGenerator(int nevents, unsigned long int seed, double mA, double mB, double mf, double signValue, double WTMAX, bool passthrough){
+void BiGenerator(int nevents, unsigned long int seed, double mA, double mB, 
+                 double mf, double signValue, double WTMAX, double pdfave, bool passthrough){
 
 // Sample from the 3-body phase space for A -> l1 l2 B based on the presentation 
 // in Nojiri and Yamada. This currentyl neglects fermion masses.
@@ -125,8 +126,6 @@ void BiGenerator(int nevents, unsigned long int seed, double mA, double mB, doub
 // Could it be that rZ can also be negative?? No it doesn't matter.
 
     double mZ = 91.1876;
-    double pdfave = 1.25391;     //for signValue = -1
-//    double pdfave=3.23978;     // for signValue = +1
     double maxweight = -1.0;
     double rB = signValue*(mB/mA);
     double rBsq = rB*rB;
@@ -150,8 +149,11 @@ void BiGenerator(int nevents, unsigned long int seed, double mA, double mB, doub
     
     double testQuantity;
     
+    double Eneutmax = (mA*mA + mB*mB)/(2.0*mA);
+    
     std::unique_ptr<TFile> myFile( TFile::Open("PhaseSpace.root","RECREATE") );
     TH1D *h_mll = new TH1D("h_mll","Dilepton Mass (GeV)",120,0.0,mA-mB);
+    TH1D *h_pneut = new TH1D("h_pneut","Neutralino Momentum (GeV)",114,0.0,std::sqrt(Eneutmax*Eneutmax - mB*mB));    
     TH1D *h_mllR = new TH1D("h_mllR","Reweighted Dilepton Mass (GeV)",120,0.0,mA-mB);    
     TH1D *h_costh12 = new TH1D("h_costh12","costh12",100,-1.0,1.0);
     TH1D *h_costh23 = new TH1D("h_costh23","costh23",100,-1.0,1.0);
@@ -162,7 +164,7 @@ void BiGenerator(int nevents, unsigned long int seed, double mA, double mB, doub
     TH1D *h_costh23star = new TH1D("h_costh23star","costh23star",100,-1.0,1.0); 
     TH1D *h_costh31star = new TH1D("h_costh31star","costh31star",100,-1.0,1.0); 
     TH2D *h_xy = new TH2D("h_xy","y vs x",100,rBsq,1.0,100,rBsq,1.0); 
-    TH2D *h_xz = new TH2D("h_xz","x vs z",100,0.0,zsqmax,100,rBsq,1.0);
+    TH2D *h_xz = new TH2D("h_xz","x vs z",50,0.0,zsqmax,50,rBsq,1.0);
     TH2D *h_xzR = new TH2D("h_xzR","Reweighted x vs z",100,0.0,zsqmax,100,rBsq,1.0);        
     
     double pdfsum = 0.0;                           
@@ -249,7 +251,8 @@ void BiGenerator(int nevents, unsigned long int seed, double mA, double mB, doub
                 h_costh23star->Fill(costh23star); 
                 h_costh31star->Fill(costh31star);
                 h_xy->Fill(x,y);
-                h_xz->Fill(z,x);  
+                h_xz->Fill(z,x);
+                h_pneut->Fill(p3); 
                 
                 // reweighting tests under either Odd or Even hypothesis
                 double wt = pdf/pdfave;
@@ -285,6 +288,7 @@ void BiGenerator(int nevents, unsigned long int seed, double mA, double mB, doub
     h_mllR->Write();
     h_costh12starR->Write();
     h_xzR->Write();
+    h_pneut->Write();
     myFile->Close();
     
 // Process the sets and write out the empirical copula file   
@@ -320,6 +324,10 @@ int main(int argc, char **argv) {
     std::string filename = "CopulaGen.EDAT";
     app.add_option("-o,--outputfile", filename, "Output copula file");
     
+    double pdfave = 1.25391;     //for signValue = -1
+//    double pdfave=3.23978;     // for signValue = +1    
+    app.add_option("-r,--reweight",pdfave, "Average pdf value for reweighting");
+    
     bool passthrough = false;
     app.add_flag("-p,--passthrough", passthrough, "Disable matrix element weighting");    
     
@@ -332,13 +340,14 @@ int main(int argc, char **argv) {
     std::cout << "mf          " << mf << std::endl;
     double signValue = double(signvalue);
     std::cout << "signValue   " << signValue << std::endl;   
-    std::cout << "WTMAX       " << WTMAX << std::endl;    
+    std::cout << "WTMAX       " << WTMAX << std::endl; 
+    std::cout << "pdfave      " << pdfave << std::endl;       
     std::cout << "filename    " << filename << std::endl;
     std::cout << "passthrough " << passthrough << std::endl;    
 
     copulafile = filename;             // Write filename to globally declared copulafile string
     
-    BiGenerator(nevents, seed, mA, mB, mf, signValue, WTMAX, passthrough);    
+    BiGenerator(nevents, seed, mA, mB, mf, signValue, WTMAX, pdfave, passthrough);    
        
     return 0;
     
