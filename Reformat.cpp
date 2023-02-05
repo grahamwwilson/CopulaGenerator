@@ -15,7 +15,7 @@
 //
 
 
-void Formatter(std::set<std::pair<std::pair<double,double>, int>> uvset,  std::set<std::pair<std::pair<double,double>, int>> vuset){
+void Formatter(std::set<std::pair<std::pair<double,double>, int>> uvset,  std::set<std::pair<std::pair<double,double>, int>> vuset, std::string outputFile){
 
   // Process the sets and write out the empirical copula file 
 
@@ -46,8 +46,8 @@ void Formatter(std::set<std::pair<std::pair<double,double>, int>> uvset,  std::s
     }
 
     std::ofstream fout;
-    fout.open("CopulaGen.EDAT");
-    fout.precision(10);   
+    fout.open(outputFile);
+    fout.precision(7);        // Only need to retain 7 digits in the mantissa for ranked data in the range [0, 1] printed in scientific notation   
          
     for (auto &u : vfirst){
         int ranku = u.first;
@@ -67,16 +67,16 @@ void Formatter(std::set<std::pair<std::pair<double,double>, int>> uvset,  std::s
 
 }
 
-void Reader(std::string copulafile="copula_4X5X-V3.EdatS"){
+void Reader(std::string inputFile, std::string outputFile){
 
     std::set<std::pair<std::pair<double,double>, int>> uvset;
     std::set<std::pair<std::pair<double,double>, int>> vuset; 
     double u,v;
     
-    std::cout << "Reading copula file named: " << copulafile << std::endl;
+    std::cout << "Reading input file named: " << inputFile << std::endl;
 
     std::ifstream copfile;
-    copfile.open(copulafile);
+    copfile.open(inputFile);
     
     int i=0;
     while (copfile >> u >> v){
@@ -91,17 +91,23 @@ void Reader(std::string copulafile="copula_4X5X-V3.EdatS"){
     copfile.close();
     
     // Process the sets and write out the reformatted empirical copula file   
-    Formatter(uvset, vuset);
+    Formatter(uvset, vuset, outputFile);
     
 }    
 
 int main(int argc, char **argv) {
 
-    CLI::App app{"Reformat empirical copula file"};
+    CLI::App app{"Reformat (x,y) data-set as an empirical copula file"};
+    
+    std::string inputFilename = "GeneratedE1E2.dat";
+    app.add_option("-i,--inputfile", inputFilename, "Input file"); 
+    
+    std::string outputFilename = "CopulaE1E2.EDAT";
+    app.add_option("-o,--outputfile", outputFilename, "Output file");       
            
     CLI11_PARSE(app, argc, argv);
     
-    Reader();
+    Reader(inputFilename, outputFilename);
        
     return 0;
     

@@ -5,4 +5,10 @@ Reformat
 *.root
 UnivariateModeler
 BivariateModeler
+BetaModeler
+NumericalInverter
+FullMonty
+PlaySet
 *.out
+*.dat
+*.log
