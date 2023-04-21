@@ -14,6 +14,16 @@ typedef std::mt19937 RandomNumberGenerator;
 //
 // Generate all four parts of the luminosity spectrum.
 //
+// Generate (x1, x2) from luminosity spectrum using 4-region approach 
+// (peak, arm1, arm2, body) with separate double beta distributions for 
+// the body and arms. Implementation includes Gaussian beam energy spread 
+// and a parametrization of the (x1,x2) dependence copula distribution for 
+// body events. In total, there are 3 region parameters, 2 resolution parameters, 
+// 3 dependence parameters, and 5 shape parameters for the marginal double-beta 
+// distributions in the body and arms prior to beam energy spread convolution, 
+// for a total of 18 parameters.
+//
+//
 //                         Graham W. Wilson, 17-JAN-2023.
 //
 
